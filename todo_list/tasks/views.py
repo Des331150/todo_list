@@ -1,9 +1,12 @@
 from django.shortcuts import render, HttpResponseRedirect, HttpResponse
 from .models import Tasks
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+from django.http import Http404
 
 
 # Create your views here.
+@csrf_exempt
 def create_task(request):
     if request.method == 'POST':
         title = request.POST.get("title")
@@ -20,23 +23,27 @@ def create_task(request):
 def success_path(request):
     return HttpResponse("Success")
 
+@csrf_exempt
 def update_task(request, task_id):
-    task = Tasks.objects.get(pk=task_id)
-    task.title = new_title
-    task.description = new_description
-
     if request.method == 'POST':
         new_title = request.POST.get("new_title")
         new_description = request.POST.get("new_description")
 
         if new_title and new_description:
-            task = Tasks(new_title=new_title, new_description=new_description)
-            task.save()
-            return HttpResponse("Task updated successfully.")
+            try:
+                task = Tasks.objects.get(pk=task_id)
+                task.title = new_title
+                task.description = new_description
+                task.save()
+                return HttpResponse("Task updated successfully.")
+            except Tasks.DoesNotExist:
+                raise Http404("Task does not exist!")
         else:
             return HttpResponse("All fields must be filled.")
+    else:
+        return HttpResponse("Invalid request method")
         
-
+@csrf_exempt
 def delete_task(request, task_id):
     if request.method == 'POST':
         try:
